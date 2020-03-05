@@ -9,4 +9,5 @@ getConnection = async () => {
         console.log(err);
     }
 }
+
 module.exports=getConnection;
