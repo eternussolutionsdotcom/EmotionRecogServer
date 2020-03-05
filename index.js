@@ -53,6 +53,14 @@ app.post('/api/save-records', (req, res, next) => {
 
     }
 });
+
+api.get('/api/sentiments-by-minute', (req, res, next) => {
+    const conn = connection();
+    var sql = format('INSERT INTO EmotionHistory (Timestamp,neutral,happy,sad,angry,fearful,disgusted,surprised,Source) VALUES %L', insertData);
+    console.log(sql);
+
+    res.send()
+})
 var server = app.listen(8081, function () {
     var port = server.address().port;
     console.log("Example app listening at localhost port:%s", port);
