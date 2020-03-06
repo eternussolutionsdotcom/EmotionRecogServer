@@ -1,6 +1,7 @@
 var express = require('express');
 const bodyParser = require('body-parser');
 var cors = require('cors')
+var _ = require('lodash')
 
 var format = require('pg-format');
 
@@ -13,7 +14,7 @@ app.use(bodyParser.raw());
 app.use(function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
     res.header("Access-Control-Allow-Headers", "*");
-    console.log('here')
+    console.log(req.url)
     next();
 });
 let connection = require('./db')
@@ -54,13 +55,32 @@ app.post('/api/save-records', (req, res, next) => {
     }
 });
 
-api.get('/api/sentiments-by-minute', (req, res, next) => {
+app.get('/api/sentiments-by-minute', (req, res, next) => {
     const conn = connection();
-    var sql = format('INSERT INTO EmotionHistory (Timestamp,neutral,happy,sad,angry,fearful,disgusted,surprised,Source) VALUES %L', insertData);
-    console.log(sql);
+    var sql = `
+        SELECT 
+            [Timestamp], 
+            AVG(sad) + AVG(disgusted) + AVG(angry) + AVG(fearful) as Sad, 
+            AVG(surprised) + AVG(happy) AS Happy, 
+            AVG(neutral) AS Neutral
+        FROM EmotionHistory
+        GROUP BY [Timestamp]`;
 
-    res.send()
+    let result = conn.then((pool) => {
+        return pool.query(sql);
+    }).then(result => {
+        const datasets = []
+        datasets.push({ label: "sad", borderColor: "blue", data: _.map(result.recordset, 'Sad') })
+        datasets.push({ label: "happy", borderColor: "yellow", data: _.map(result.recordset, 'Happy') })
+        datasets.push({ label: "neutral", borderColor: "grey", data: _.map(result.recordset, 'Neutral') })
+        const labels = _.map(result.recordset, 'Timestamp')
+        return res.send({ datasets, labels }).status(200);
+    }).catch(err => {
+        console.log(err);
+        res.send(err).status(500);
+    })
 })
+
 var server = app.listen(8081, function () {
     var port = server.address().port;
     console.log("Example app listening at localhost port:%s", port);
